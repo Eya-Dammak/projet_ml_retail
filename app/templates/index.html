@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ML Retail App</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: white;
+            text-align: center;
+            padding: 40px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+
+        form {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+            width: 280px;
+        }
+
+        input {
+            margin: 8px 0;
+            padding: 12px;
+            width: 240px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: #fafafa;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #9b59b6;
+            background: white;
+            box-shadow: 0 0 0 2px rgba(155,89,182,0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+        }
+
+        button[type="submit"] {
+            background: #7CB9E8;
+            color: white;
+        }
+
+        button[type="submit"]:hover {
+            background: #6BA5D4;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(124,185,232,0.3);
+        }
+
+        .results-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 220px;
+            min-height: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e8e8e8;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .card-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            word-break: break-word;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-sub {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 8px;
+        }
+
+        /* Couleurs spécifiques pour chaque carte */
+        .card-interpretation .card-value {
+            color: #2c3e50;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .card-churn .card-value {
+            color: #82b74e;
+        }
+
+        .card-proba .card-value {
+            color: #7CB9E8;
+        }
+
+        .card-revenue .card-value {
+            color: #82b74e;
+            font-size: 22px;
+        }
+
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #f0f0f0;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>🎁 Customer Analytics App</h1>
+
+    <form method="POST">
+        <input type="number" step="any" name="Recency" placeholder="Recency" required><br>
+        <input type="number" step="any" name="Frequency" placeholder="Frequency" required><br>
+        <input type="number" step="any" name="MonetaryTotal" placeholder="MonetaryTotal" required><br>
+        <input type="number" step="any" name="CustomerTenure" placeholder="CustomerTenure" required><br>
+        <input type="number" step="any" name="AvgDaysBetween" placeholder="AvgDaysBetween" required><br>
+        <input type="number" step="any" name="TotalTrans" placeholder="TotalTrans" required><br>
+        <button type="submit">🔮 Predict</button>
+    </form>
+
+    {% if cluster is not none %}
+    <div class="results-container">
+        
+        <div class="result-card card-interpretation">
+            <div class="card-icon">🎯</div>
+            <div class="card-title">Interprétation</div>
+            <div class="card-value">{{ interpretation }}</div>
+            <div class="card-sub">Segment client</div>
+        </div>
+        
+        <div class="result-card card-churn">
+            <div class="card-icon">📉</div>
+            <div class="card-title">Churn</div>
+            <div class="card-value">
+                {% if churn == 1 %}
+                   1: 🔴 Risque d'attrition
+                {% else %}
+                   0: 🟢 Client stable
+                {% endif %}
+            </div>
+            <div class="card-sub">Risque d'attrition</div>
+        </div>
+        
+        <div class="result-card card-proba">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Probabilité</div>
+            <div class="card-value">{{ proba }}</div>
+            <div class="card-sub">Confiance</div>
+        </div>
+        
+        <div class="result-card card-revenue">
+            <div class="card-icon">💰</div>
+            <div class="card-title">Revenu Estimé</div>
+            <div class="card-value">{{ revenue }} £</div>
+            <div class="card-sub">Prévision</div>
+        </div>
+        
+    </div>
+    {% endif %}
+
+</body>
+</html>
