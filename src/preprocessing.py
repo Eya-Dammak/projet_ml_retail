@@ -1,165 +1,274 @@
-# ============================================================
-# 🚀 TRAIN_MODEL FINAL (CORRIGÉ PROPRE)
-# ============================================================
-
 import pandas as pd
-import os
+import numpy as np
+import ipaddress
+from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
+from sklearn.model_selection import train_test_split
 import joblib
-import optuna
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix,
-    roc_auc_score,
-    mean_absolute_error,
-    r2_score
-)
+import os
 
 # ============================================================
-# 📥 LOAD DATA
+# 1. Chargement des données
 # ============================================================
-
-df = pd.read_csv("../data/train_test/train.csv")
-print("📊 Dataset chargé :", df.shape)
-
-# ============================================================
-# 🔵 CLUSTERING + PCA
-# ============================================================
-
-features_cluster = [
-    "Recency",
-    "Frequency",
-    "MonetaryTotal",
-    "CustomerTenureDays",
-    "AvgDaysBetweenPurchases",
-    "TotalTransactions"
-]
-
-df_cluster = df[features_cluster].copy()
-
-# garder seulement colonnes numériques (sécurité)
-df_cluster = df_cluster.select_dtypes(include=["number"])
-
-df_cluster = df_cluster.fillna(df_cluster.mean())
-scaler_cluster = StandardScaler()
-X_scaled = scaler_cluster.fit_transform(df_cluster)
-
-pca = PCA(n_components=0.95)
-X_pca = pca.fit_transform(X_scaled)
-
-# 🔥 BEST K
-best_k, best_score = 2, -1
-for k in range(2, 10):
-    km = KMeans(n_clusters=k, random_state=42, n_init=10)
-    score = silhouette_score(X_pca, km.fit_predict(X_pca))
-    if score > best_score:
-        best_k, best_score = k, score
-
-kmeans = KMeans(n_clusters=best_k, random_state=42, n_init=10)
-df["Cluster"] = kmeans.fit_predict(X_pca)
-
-print("🔥 Best K =", best_k)
+def charger_donnees(chemin: str) -> pd.DataFrame:
+    """Lit le fichier CSV brut et retourne un DataFrame."""
+    df = pd.read_csv(chemin)
+    print(f"[INFO] Dataset chargé — {df.shape[0]} observations, {df.shape[1]} variables")
+    return df
 
 # ============================================================
-# 🟢 CLASSIFICATION
+# 2. Suppression des colonnes non informatives
 # ============================================================
+def supprimer_cols_non_informatives(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    - CustomerID  : simple identifiant, sans valeur prédictive
+    - NewsletterSubscribed : variance nulle (toujours 'Yes')
+    """
+    a_supprimer = ['CustomerID', 'NewsletterSubscribed']
+    df = df.drop(columns=a_supprimer, errors='ignore')
+    print(f"[INFO] Colonnes non informatives supprimées : {a_supprimer}")
+    return df
 
-df_clf = df.drop("Cluster", axis=1)
-df_clf = pd.get_dummies(df_clf, drop_first=True)
+# ============================================================
+# 3. Détection et correction des valeurs aberrantes
+# ============================================================
+def traiter_aberrantes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    SupportTicketsCount : 999 et -1 sont des sentinelles hors-plage → NaN
+    SatisfactionScore   : 99 et -1 idem
+    """
+    df['SupportTicketsCount'] = df['SupportTicketsCount'].replace({999: np.nan, -1: np.nan})
+    df['SatisfactionScore']   = df['SatisfactionScore'].replace({99: np.nan, -1: np.nan})
+    print("[INFO] Valeurs aberrantes (SupportTicketsCount, SatisfactionScore) remplacées par NaN")
+    return df
 
-X = df_clf.drop("Churn", axis=1)
-y = df_clf["Churn"]
-
-# 🔥 IMPORTANT
-scaler_clf = StandardScaler()
-X_scaled = scaler_clf.fit_transform(X)
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y, test_size=0.2, stratify=y, random_state=42
-)
-
-def objective_clf(trial):
-    model = RandomForestClassifier(
-        n_estimators=trial.suggest_int("n_estimators", 100, 300),
-        max_depth=trial.suggest_int("max_depth", 5, 30),
-        min_samples_split=trial.suggest_int("min_samples_split", 2, 10),
-        class_weight="balanced",
-        random_state=42
+# ============================================================
+# 4. Parsing de RegistrationDate
+# ============================================================
+def extraire_features_date(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convertit la date texte en datetime puis décompose en 4 features numériques :
+    RegYear, RegMonth, RegDay, RegWeekday (0=Lundi … 6=Dimanche).
+    La colonne originale est supprimée.
+    """
+    df['RegistrationDate'] = pd.to_datetime(
+        df['RegistrationDate'], dayfirst=True, errors='coerce'
     )
-    return cross_val_score(model, X_train, y_train, cv=5, scoring="roc_auc").mean()
-
-study = optuna.create_study(direction="maximize")
-study.optimize(objective_clf, n_trials=20)
-
-clf = RandomForestClassifier(**study.best_params, class_weight="balanced")
-clf.fit(X_train, y_train)
-
-print("ROC:", roc_auc_score(y_test, clf.predict_proba(X_test)[:,1]))
+    df['RegYear']    = df['RegistrationDate'].dt.year
+    df['RegMonth']   = df['RegistrationDate'].dt.month
+    df['RegDay']     = df['RegistrationDate'].dt.day
+    df['RegWeekday'] = df['RegistrationDate'].dt.weekday
+    df = df.drop(columns=['RegistrationDate'])
+    print("[INFO] RegistrationDate → RegYear, RegMonth, RegDay, RegWeekday")
+    return df
 
 # ============================================================
-# 🟣 REGRESSION
+# 5. Transformation de LastLoginIP → IsPrivateIP
 # ============================================================
+def extraire_feature_ip(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Détecte si l'adresse IP est privée (réseau local) ou publique.
+    Retourne 1 si privée, 0 sinon. La colonne IP brute est supprimée.
+    """
+    def _est_prive(ip_str: str) -> int:
+        try:
+            return int(ipaddress.ip_address(str(ip_str)).is_private)
+        except ValueError:
+            return 0
 
-df_reg = df.drop("Cluster", axis=1)
-df_reg = pd.get_dummies(df_reg, drop_first=True)
+    df['IsPrivateIP'] = df['LastLoginIP'].apply(_est_prive)
+    df = df.drop(columns=['LastLoginIP'])
+    print("[INFO] LastLoginIP → IsPrivateIP (1=privé, 0=public)")
+    return df
 
-X_reg = df_reg.drop("MonetaryTotal", axis=1)
-y_reg = df_reg["MonetaryTotal"]
+# ============================================================
+# 6. Feature engineering
+# ============================================================
+def creer_nouvelles_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Trois nouvelles variables construites AVANT la suppression anti-leakage :
+      - MonetaryPerDay  : dépense moyenne par jour d'inactivité
+      - AvgBasketValue  : montant moyen par commande
+      - TenureRatio     : ratio inactivité / ancienneté (comportement récent vs historique)
+    """
+    df['MonetaryPerDay'] = df['MonetaryTotal'] / (df['Recency'] + 1)
+    df['AvgBasketValue'] = df['MonetaryTotal'] / df['Frequency']
+    df['TenureRatio']    = df['Recency'] / (df['CustomerTenureDays'] + 1)
+    print("[INFO] Nouvelles features créées : MonetaryPerDay, AvgBasketValue, TenureRatio")
+    return df
 
-scaler_reg = StandardScaler()
-X_reg_scaled = scaler_reg.fit_transform(X_reg)
+# ============================================================
+# 7. Suppression des features à risque de data leakage
+# ============================================================
+def supprimer_features_leakage(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Supprime les colonnes dont l'information est :
+      - dérivée de Churn (ChurnRiskCategory, AccountStatus…)
+      - résumée dans les nouvelles features (CustomerTenureDays, Recency, TenureRatio)
+      - trop corrélées à la cible pour un usage réaliste
+    """
+    leakage = [
+        'ChurnRiskCategory', 'CustomerType', 'LoyaltyLevel',
+        'SpendingCategory', 'RFMSegment', 'AccountStatus',
+        'ReturnRatio', 'NegQtyCount', 'ZeroPriceCount',
+        'CancelledTransactions', 'CustomerTenureDays',
+        'FirstPurchase', 'Age', 'SupportTicketsCount',
+        'SatisfactionScore', 'Recency', 'TenureRatio',
+    ]
+    df = df.drop(columns=leakage, errors='ignore')
+    print(f"[INFO] Features leakage supprimées ({len(leakage)} colonnes)")
+    return df
 
-X_train_r, X_test_r, y_train_r, y_test_r = train_test_split(
-    X_reg_scaled, y_reg, test_size=0.2, random_state=42
-)
+# ============================================================
+# 8. Réduction de la multicolinéarité (seuil |r| > 0.8)
+# ============================================================
+def reduire_multicolinearite(df: pd.DataFrame, seuil: float = 0.8) -> pd.DataFrame:
+    """
+    Calcule la matrice de corrélation absolue sur les features numériques (hors Churn).
+    Pour chaque paire dépassant le seuil, la première colonne est retirée.
+    """
+    numeriques = [c for c in df.select_dtypes(include=['float64', 'int64']).columns
+                  if c != 'Churn']
+    if not numeriques:
+        print("[WARN] Aucune colonne numérique détectée pour l'analyse de multicolinéarité")
+        return df
 
-def objective_reg(trial):
-    model = RandomForestRegressor(
-        n_estimators=trial.suggest_int("n_estimators", 100, 300),
-        max_depth=trial.suggest_int("max_depth", 5, 30),
-        min_samples_split=trial.suggest_int("min_samples_split", 2, 10),
-        random_state=42
+    matrice_corr = df[numeriques].corr().abs()
+    a_retirer = set()
+    for i in range(len(matrice_corr.columns)):
+        for j in range(i):
+            if matrice_corr.iloc[i, j] > seuil:
+                col_redondante = matrice_corr.columns[i]
+                a_retirer.add(col_redondante)
+                print(f"   [CORR] {col_redondante} ↔ {matrice_corr.columns[j]} "
+                      f"= {matrice_corr.iloc[i, j]:.2f} → retrait de {col_redondante}")
+
+    df = df.drop(columns=list(a_retirer))
+    print(f"[INFO] Multicolinéarité : {len(a_retirer)} colonne(s) retirée(s)")
+    return df
+
+# ============================================================
+# 9. Encodage des variables catégorielles (hors Country)
+# ============================================================
+def encoder_variables_categorielles(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Encodage ordinal pour les variables avec ordre naturel,
+    One-Hot pour les variables nominales sans ordre (sauf Country, traitée après split).
+    """
+    # --- Encodage ordinal ---
+    configs_ordinales = {
+        'AgeCategory': ['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'Inconnu'],
+        'BasketSizeCategory': ['Petit', 'Moyen', 'Grand', 'Inconnu'],
+        'PreferredTimeOfDay': ['Matin', 'Midi', 'Après-midi', 'Soir', 'Nuit'],
+    }
+    for col, ordre in configs_ordinales.items():
+        if col in df.columns:
+            enc = OrdinalEncoder(
+                categories=[ordre],
+                handle_unknown='use_encoded_value',
+                unknown_value=-1
+            )
+            df[col] = enc.fit_transform(df[[col]])
+            print(f"   [ENC] Ordinal : {col}")
+
+    # --- Encodage One-Hot (nominales, hors Country) ---
+    cols_onehot = [c for c in ['FavoriteSeason', 'Region', 'WeekendPreference',
+                                'ProductDiversity', 'Gender'] if c in df.columns]
+    df = pd.get_dummies(df, columns=cols_onehot, drop_first=False)
+    print(f"[INFO] One-Hot : {cols_onehot}")
+    return df
+
+# ============================================================
+# 10. Split, One-Hot Country, Imputation, Standardisation
+# ============================================================
+def preparer_jeux_train_test(df: pd.DataFrame):
+    """
+    Pipeline final :
+      1. Séparation stratifiée 80/20
+      2. One-Hot encoding de Country (fit sur union train+test pour couvrir tous les pays)
+      3. Imputation par la médiane (calculée sur X_train uniquement)
+      4. Standardisation (StandardScaler fitté sur X_train)
+      5. Sauvegarde des CSV et artefacts (.pkl)
+    """
+    X = df.drop(columns=['Churn'])
+    y = df['Churn']
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
-    score = cross_val_score(model, X_train_r, y_train_r, cv=5,
-                            scoring="neg_mean_absolute_error")
-    return -score.mean()
+    print(f"[INFO] Séparation → train : {X_train.shape} | test : {X_test.shape}")
 
-study_reg = optuna.create_study(direction="minimize")
-study_reg.optimize(objective_reg, n_trials=20)
+    # --- One-Hot de Country (après split pour éviter la fuite) ---
+    if 'Country' in X_train.columns:
+        combined_country = pd.concat(
+            [X_train[['Country']], X_test[['Country']]], axis=0
+        )
+        ohe = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+        ohe.fit(combined_country[['Country']])
 
-reg = RandomForestRegressor(**study_reg.best_params)
-reg.fit(X_train_r, y_train_r)
+        country_cols = [f'Country_{c}' for c in ohe.categories_[0]]
+        train_ohe = pd.DataFrame(ohe.transform(X_train[['Country']]),
+                                 columns=country_cols)
+        test_ohe  = pd.DataFrame(ohe.transform(X_test[['Country']]),
+                                 columns=country_cols)
 
-print("MAE:", mean_absolute_error(y_test_r, reg.predict(X_test_r)))
+        X_train = pd.concat(
+            [X_train.drop(columns=['Country']).reset_index(drop=True), train_ohe], axis=1
+        )
+        X_test = pd.concat(
+            [X_test.drop(columns=['Country']).reset_index(drop=True), test_ohe], axis=1
+        )
+        print(f"[INFO] One-Hot Country : {len(ohe.categories_[0])} modalités")
+    else:
+        print("[WARN] Colonne 'Country' absente du dataset")
+
+    # --- Imputation par la médiane du train ---
+    mediane = X_train.median()
+    X_train = X_train.fillna(mediane)
+    X_test  = X_test.fillna(mediane)
+    print("[INFO] Imputation médiane (paramètres issus du train uniquement)")
+
+    # --- Standardisation ---
+    scaler = StandardScaler()
+    X_train_sc = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+    X_test_sc  = pd.DataFrame(scaler.transform(X_test),      columns=X_test.columns)
+    print("[INFO] StandardScaler appliqué (fit sur train)")
+
+    # --- Sauvegarde ---
+    os.makedirs('data/train_test', exist_ok=True)
+    os.makedirs('models', exist_ok=True)
+    X_train_sc.to_csv('data/train_test/X_train.csv', index=False)
+    X_test_sc.to_csv('data/train_test/X_test.csv',   index=False)
+    y_train.to_csv('data/train_test/y_train.csv',     index=False)
+    y_test.to_csv('data/train_test/y_test.csv',       index=False)
+    joblib.dump(scaler,  'models/scaler.pkl')
+    joblib.dump(mediane, 'models/mediane_train.pkl')
+    print("[INFO] Artefacts sauvegardés dans data/train_test/ et models/")
+
+    return X_train_sc, X_test_sc, y_train, y_test
 
 # ============================================================
-# 💾 SAVE (TRÈS IMPORTANT)
+# Pipeline principal
 # ============================================================
+if __name__ == "__main__":
+    # Étape 1 – Chargement
+    df = charger_donnees('data/raw/retail_customers_COMPLETE_CATEGORICAL.csv')
 
-os.makedirs("../models", exist_ok=True)
+    # Étapes 2-9 – Nettoyage & transformation
+    df = supprimer_cols_non_informatives(df)
+    df = traiter_aberrantes(df)
+    df = extraire_features_date(df)
+    df = extraire_feature_ip(df)
+    df = creer_nouvelles_features(df)
+    df = supprimer_features_leakage(df)
+    df = reduire_multicolinearite(df)
+    df = encoder_variables_categorielles(df)
 
-# clustering
-joblib.dump(kmeans, "../models/kmeans.pkl")
-joblib.dump(pca, "../models/pca.pkl")
-joblib.dump(scaler_cluster, "../models/scaler_cluster.pkl")
-joblib.dump(features_cluster, "../models/cluster_features.pkl")
+    # Sauvegarde intermédiaire
+    os.makedirs('data/processed', exist_ok=True)
+    df.to_csv('data/processed/data_clean.csv', index=False)
+    print(f"\n[INFO] data_clean.csv enregistré — dimensions finales : {df.shape}")
 
-# classification
-joblib.dump(clf, "../models/churn_model.pkl")
-joblib.dump(scaler_clf, "../models/scaler_clf.pkl")   # 🔥 FIX
-joblib.dump(X.columns, "../models/churn_columns.pkl")
+    # Étape 10 – Split, imputation, scaling
+    X_train, X_test, y_train, y_test = preparer_jeux_train_test(df)
 
-# regression
-joblib.dump(reg, "../models/regression_model.pkl")
-joblib.dump(scaler_reg, "../models/scaler_reg.pkl")   # 🔥 FIX
-joblib.dump(X_reg.columns, "../models/reg_columns.pkl")
-
-print("\n✅ MODELS SAUVEGARDÉS SANS BUG")
+    print("\n[DONE] Preprocessing terminé avec succès !")

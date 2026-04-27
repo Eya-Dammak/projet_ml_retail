@@ -1,215 +1,357 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>ML Retail App</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ProjetML</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g1:#d4f0d4;--g2:#a8dca8;--g3:#6bbf6b;--g4:#3d8b3d;--gbg:#f0faf0;
+  --white:#ffffff;--card:#ffffff;--border:#c8e6c8;--text:#1a2e1a;--muted:#5a7a5a;
+  --success:#16803c;--warning:#b45309;--danger:#dc2626;
+  --sans:'Plus Jakarta Sans',sans-serif;--radius:16px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--gbg);color:var(--text);min-height:100vh}
 
-    <style>
-        body {
-            font-family: Arial;
-            background: white;
-            text-align: center;
-            padding: 40px;
-            margin: 0;
-            min-height: 100vh;
-        }
+header{background:var(--white);border-bottom:1px solid var(--border);padding:0 40px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 12px rgba(61,139,61,0.06)}
+.h-brand{display:flex;align-items:center;gap:10px}
+.h-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--g3),var(--g2));border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+.h-name{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.03em}
+.h-name span{color:var(--g3)}
+.h-nav{display:flex;align-items:center;gap:12px}
+.nav-pill{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;text-decoration:none;transition:all .2s;border:1.5px solid transparent}
+.nav-pill.ghost{color:var(--muted);border-color:var(--border)}
+.nav-pill.ghost:hover{color:var(--g4);border-color:var(--g2);background:var(--g1)}
+.nav-pill.solid{background:var(--g3);color:#fff;border-color:var(--g3)}
+.nav-pill.solid:hover{background:var(--g4)}
 
-        h1 {
-            color: #333;
-            font-size: 32px;
-            margin-bottom: 30px;
-        }
+.hero{text-align:center;padding:56px 20px 40px}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 16px;background:var(--g1);border:1px solid var(--g2);border-radius:999px;font-size:12px;font-weight:600;color:var(--g4);margin-bottom:20px}
+.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--g3);display:inline-block}
+.hero-title{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-bottom:14px;color:var(--text)}
+.hero-title em{font-style:normal;color:var(--g3)}
+.hero-sub{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto;line-height:1.65}
 
-        form {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            display: inline-block;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border: 1px solid #e0e0e0;
-            margin-bottom: 30px;
-            width: 280px;
-        }
+.container{max-width:760px;margin:0 auto;padding:0 20px 80px}
 
-        input {
-            margin: 8px 0;
-            padding: 12px;
-            width: 240px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            background: #fafafa;
-        }
+.form-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:36px;margin-bottom:24px;box-shadow:0 4px 24px rgba(61,139,61,0.06)}
+.fc-header{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.fc-num{width:32px;height:32px;border-radius:50%;background:var(--g1);border:2px solid var(--g2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--g4);flex-shrink:0}
+.fc-title{font-size:17px;font-weight:700;color:var(--text)}
+.fc-sub{font-size:13px;color:var(--muted);margin-top:2px}
 
-        input:focus {
-            outline: none;
-            border-color: #9b59b6;
-            background: white;
-            box-shadow: 0 0 0 2px rgba(155,89,182,0.1);
-        }
+.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select{background:var(--gbg);border:1.5px solid var(--border);border-radius:10px;padding:12px 15px;font-size:15px;font-weight:500;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus{border-color:var(--g3);box-shadow:0 0 0 3px rgba(107,191,107,0.15)}
+.field select option{background:#fff}
 
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 500;
-            margin-top: 12px;
-            transition: all 0.3s ease;
-        }
+.btn-analyse{width:100%;margin-top:24px;padding:15px;background:linear-gradient(135deg,var(--g3),var(--g2));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;box-shadow:0 4px 16px rgba(107,191,107,0.35)}
+.btn-analyse:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(107,191,107,0.4)}
+.btn-analyse:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-        button[type="submit"] {
-            background: #7CB9E8;
-            color: white;
-        }
+.results-section{display:none}
 
-        button[type="submit"]:hover {
-            background: #6BA5D4;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(124,185,232,0.3);
-        }
+/* ── CIRCULAR GAUGE ── */
+.gauge-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:36px;text-align:center;margin-bottom:18px;box-shadow:0 4px 24px rgba(61,139,61,0.06)}
+.gauge-eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:24px}
+.circle-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+.circle-svg-wrap{position:relative;width:200px;height:200px}
+.circle-svg-wrap svg{width:200px;height:200px;transform:rotate(-90deg)}
+.gauge-track-circle{fill:none;stroke:var(--g1);stroke-width:14}
+.gauge-fill-circle{fill:none;stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.34,1.1,.64,1),stroke .4s}
+.gauge-fill-circle.low{stroke:#16803c}
+.gauge-fill-circle.med{stroke:#b45309}
+.gauge-fill-circle.hi{stroke:#dc2626}
+.circle-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.circle-pct{font-size:42px;font-weight:800;letter-spacing:-2px;line-height:1}
+.circle-pct.low{color:var(--success)}
+.circle-pct.med{color:var(--warning)}
+.circle-pct.hi{color:var(--danger)}
+.circle-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.gauge-badge{display:inline-block;padding:7px 20px;border-radius:999px;font-size:13px;font-weight:700;letter-spacing:.02em}
+.gauge-badge.low{background:#dcfce7;color:#166534}
+.gauge-badge.med{background:#fef3c7;color:#92400e}
+.gauge-badge.hi{background:#fee2e2;color:#991b1b}
+.gauge-scale{display:flex;gap:6px;align-items:center;font-size:11px;font-weight:600;color:var(--muted)}
+.scale-dot{width:8px;height:8px;border-radius:50%}
 
-        .results-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.i-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 2px 12px rgba(61,139,61,0.04)}
+.i-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px}
+.i-val{display:flex;align-items:center;gap:10px}
+.i-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.ii-green{background:#dcfce7;color:#16803c}.ii-blue{background:#dbeafe;color:#1d4ed8}.ii-amber{background:#fef3c7;color:#92400e}.ii-red{background:#fee2e2;color:#991b1b}.ii-g{background:var(--g1);color:var(--g4)}
+.i-text{font-size:16px;font-weight:700;color:var(--text)}
 
-        .result-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            width: 220px;
-            min-height: 180px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border: 1px solid #e8e8e8;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            display: flex;
-            flex-direction: column;
-        }
+.revenue-card{background:linear-gradient(135deg,var(--g1),#e8f8e8);border:1.5px solid var(--g2);border-radius:14px;padding:20px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(61,139,61,0.08)}
+.rev-left .rev-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:5px}
+.rev-left .rev-sub{font-size:12px;color:var(--muted)}
+.rev-val{font-size:32px;font-weight:800;color:var(--g4);letter-spacing:-.02em}
 
-        .result-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        }
+.models-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:0 2px 12px rgba(61,139,61,0.04)}
+.models-header{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:16px}
+.models-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mod{background:var(--gbg);border:1.5px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.mod-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.mod-val{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.mod-sub{font-size:10px;color:var(--muted);margin-top:2px}
 
-        .card-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
+.verdict-card{border-radius:14px;padding:18px 20px;font-size:14px;font-weight:500;line-height:1.65;border-left:4px solid transparent;margin-bottom:28px}
+.verdict-card.low{background:#f0fdf4;border-left-color:#16803c;color:#166534}
+.verdict-card.med{background:#fffbeb;border-left-color:#b45309;color:#92400e}
+.verdict-card.hi{background:#fff1f2;border-left-color:#dc2626;color:#991b1b}
 
-        .card-title {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #888;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
+.dash-cta{display:flex;align-items:center;justify-content:space-between;background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:20px 24px;text-decoration:none;transition:all .2s;box-shadow:0 2px 12px rgba(61,139,61,0.04)}
+.dash-cta:hover{border-color:var(--g2);box-shadow:0 6px 24px rgba(61,139,61,0.12);transform:translateY(-1px)}
+.dash-left{display:flex;align-items:center;gap:14px}
+.dash-icon{width:42px;height:42px;border-radius:11px;background:var(--g1);border:1.5px solid var(--g2);display:flex;align-items:center;justify-content:center;color:var(--g4);font-size:18px}
+.dash-info strong{display:block;font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px}
+.dash-info span{font-size:12px;color:var(--muted)}
+.dash-arrow{width:34px;height:34px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;color:var(--g4);font-size:13px;transition:transform .2s}
+.dash-cta:hover .dash-arrow{transform:translateX(4px)}
 
-        .card-value {
-            font-size: 20px;
-            font-weight: 600;
-            color: #333;
-            word-break: break-word;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card-sub {
-            font-size: 12px;
-            color: #aaa;
-            margin-top: 8px;
-        }
-
-        /* Couleurs spécifiques pour chaque carte */
-        .card-interpretation .card-value {
-            color: #2c3e50;
-            font-size: 15px;
-            line-height: 1.4;
-        }
-
-        .card-churn .card-value {
-            color: #82b74e;
-        }
-
-        .card-proba .card-value {
-            color: #7CB9E8;
-        }
-
-        .card-revenue .card-value {
-            color: #82b74e;
-            font-size: 22px;
-        }
-
-        hr {
-            margin: 20px 0;
-            border: none;
-            border-top: 1px solid #f0f0f0;
-        }
-    </style>
-
+@media(max-width:600px){
+  header{padding:0 20px}.hero{padding:36px 20px 28px}.hero-title{font-size:32px}
+  .form-card{padding:24px}.fields-grid,.info-grid,.models-row{grid-template-columns:1fr}
+}
+</style>
 </head>
-
 <body>
 
-    <h1>🎁 Customer Analytics App</h1>
+<header>
+  <div class="h-brand">
+    <div class="h-logo"><i class="fa-solid fa-leaf"></i></div>
+    <span class="h-name">Projet<span>ML</span></span>
+  </div>
+  <nav class="h-nav">
+    <a href="#predict" class="nav-pill ghost"><i class="fa-solid fa-bolt"></i> Prédiction</a>
+    <a href="/dashboard" target="_blank" class="nav-pill solid"><i class="fa-solid fa-chart-mixed"></i> Dashboard</a>
+  </nav>
+</header>
 
-    <form method="POST">
-        <input type="number" step="any" name="Recency" placeholder="Recency" required><br>
-        <input type="number" step="any" name="Frequency" placeholder="Frequency" required><br>
-        <input type="number" step="any" name="MonetaryTotal" placeholder="MonetaryTotal" required><br>
-        <input type="number" step="any" name="CustomerTenure" placeholder="CustomerTenure" required><br>
-        <input type="number" step="any" name="AvgDaysBetween" placeholder="AvgDaysBetween" required><br>
-        <input type="number" step="any" name="TotalTrans" placeholder="TotalTrans" required><br>
-        <button type="submit">🔮 Predict</button>
-    </form>
+<div class="hero">
+  <h1 class="hero-title">Analysez le risque<br>de <em>churn client</em></h1>
+  <p class="hero-sub">Entrez les données du client et obtenez une prédiction instantanée avec segmentation et revenu estimé.</p>
+</div>
 
-    {% if cluster is not none %}
-    <div class="results-container">
-        
-        <div class="result-card card-interpretation">
-            <div class="card-icon">🎯</div>
-            <div class="card-title">Interprétation</div>
-            <div class="card-value">{{ interpretation }}</div>
-            <div class="card-sub">Segment client</div>
-        </div>
-        
-        <div class="result-card card-churn">
-            <div class="card-icon">📉</div>
-            <div class="card-title">Churn</div>
-            <div class="card-value">
-                {% if churn == 1 %}
-                   1: 🔴 Risque d'attrition
-                {% else %}
-                   0: 🟢 Client stable
-                {% endif %}
-            </div>
-            <div class="card-sub">Risque d'attrition</div>
-        </div>
-        
-        <div class="result-card card-proba">
-            <div class="card-icon">📊</div>
-            <div class="card-title">Probabilité</div>
-            <div class="card-value">{{ proba }}</div>
-            <div class="card-sub">Confiance</div>
-        </div>
-        
-        <div class="result-card card-revenue">
-            <div class="card-icon">💰</div>
-            <div class="card-title">Revenu Estimé</div>
-            <div class="card-value">{{ revenue }} £</div>
-            <div class="card-sub">Prévision</div>
-        </div>
-        
+<div class="container" id="predict">
+
+  <div class="form-card">
+    <div class="fc-header">
+      <div class="fc-num">1</div>
+      <div>
+        <div class="fc-title">Données du client</div>
+        <div class="fc-sub">Renseignez les 4 variables du profil</div>
+      </div>
     </div>
-    {% endif %}
 
+    <div class="fields-grid">
+      <div class="field">
+        <label>Fréquence d'achat</label>
+        <input type="number" id="inp-freq" min="1" max="50" value="3" placeholder="ex: 3">
+      </div>
+      <div class="field">
+        <label>Montant total (£)</label>
+        <input type="number" id="inp-monetary" min="0" max="15000" value="450" placeholder="ex: 450">
+      </div>
+      <div class="field">
+        <label>Saison préférée</label>
+        <select id="inp-season">
+          <option value="Hiver">Hiver</option>
+          <option value="Printemps" selected>Printemps</option>
+          <option value="Été">Été</option>
+          <option value="Automne">Automne</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Diversité produits</label>
+        <select id="inp-diversity">
+          <option value="Spécialisé" selected>Spécialisé</option>
+          <option value="Modéré">Modéré</option>
+          <option value="Explorateur">Explorateur</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-analyse" id="runBtn">
+      <span id="btnTxt"><i class="fa-solid fa-magnifying-glass-chart"></i> &nbsp;Lancer l'analyse</span>
+      <div class="spinner" id="btnSpin"></div>
+    </button>
+  </div>
+
+  <div class="results-section" id="resultsSection">
+
+    <!-- Jauge circulaire -->
+    <div class="gauge-card">
+      <div class="gauge-eyebrow">Probabilité de churn — Modèle Stacking</div>
+      <div class="circle-gauge-wrap">
+        <div class="circle-svg-wrap">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle class="gauge-track-circle" cx="100" cy="100" r="82"/>
+            <circle class="gauge-fill-circle" id="gaugeFillCircle" cx="100" cy="100" r="82"
+              stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+          </svg>
+          <div class="circle-inner">
+            <div class="circle-pct" id="gaugeNum">—</div>
+            <div class="circle-label">churn</div>
+          </div>
+        </div>
+        <span class="gauge-badge" id="gaugeBadge">—</span>
+        <div class="gauge-scale">
+          <span class="scale-dot" style="background:#16803c"></span><span>Faible</span>
+          <span style="margin:0 6px">·</span>
+          <span class="scale-dot" style="background:#b45309"></span><span>Modéré</span>
+          <span style="margin:0 6px">·</span>
+          <span class="scale-dot" style="background:#dc2626"></span><span>Élevé</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="i-card">
+        <div class="i-label">Cluster K-Means</div>
+        <div class="i-val">
+          <div class="i-icon ii-g" id="clusterIcon"><i class="fa-solid fa-shapes"></i></div>
+          <div class="i-text" id="clusterVal">—</div>
+        </div>
+      </div>
+      <div class="i-card">
+        <div class="i-label">Profil de risque</div>
+        <div class="i-val">
+          <div class="i-icon" id="segIcon"><i class="fa-solid fa-star"></i></div>
+          <div class="i-text" id="segVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="revenue-card">
+      <div class="rev-left">
+        <div class="rev-label">Revenu estimé</div>
+        <div class="rev-sub">XGBoost Régression</div>
+      </div>
+      <div class="rev-val" id="revenueVal">— £</div>
+    </div>
+
+    <div class="models-card">
+      <div class="models-header">Probabilité churn par modèle</div>
+      <div class="models-row">
+        <div class="mod"><div class="mod-name">Random Forest</div><div class="mod-val" id="rfVal">--</div><div class="mod-sub">% churn</div></div>
+        <div class="mod"><div class="mod-name">XGBoost</div><div class="mod-val" id="xgbVal">--</div><div class="mod-sub">% churn</div></div>
+        <div class="mod"><div class="mod-name">Stacking</div><div class="mod-val" id="stkVal">--</div><div class="mod-sub">% churn</div></div>
+      </div>
+    </div>
+
+    <div class="verdict-card" id="verdictCard"></div>
+
+    <a href="/dashboard" target="_blank" class="dash-cta">
+      <div class="dash-left">
+        <div class="dash-icon"><i class="fa-solid fa-chart-mixed"></i></div>
+        <div class="dash-info">
+          <strong>Dashboard & Analytics</strong>
+          <span>Métriques, features importantes, distribution churn</span>
+        </div>
+      </div>
+      <div class="dash-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+    </a>
+
+  </div>
+</div>
+
+<script>
+const segConfig = {
+  'Premium':      { cls:'ii-blue',  icon:'fa-star' },
+  'Réguliers':    { cls:'ii-green', icon:'fa-user-check' },
+  'Occasionnels': { cls:'ii-amber', icon:'fa-user-clock' },
+  'Inactifs':     { cls:'ii-red',   icon:'fa-user-slash' },
+};
+const colLevel = v => v < 35 ? '#16803c' : v < 65 ? '#b45309' : '#dc2626';
+const CIRCUMFERENCE = 2 * Math.PI * 82; // 515.22
+
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const btn  = document.getElementById('runBtn');
+  const txt  = document.getElementById('btnTxt');
+  const spin = document.getElementById('btnSpin');
+  btn.disabled = true; txt.style.display = 'none'; spin.style.display = 'block';
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        frequency:         parseFloat(document.getElementById('inp-freq').value),
+        monetary:          parseFloat(document.getElementById('inp-monetary').value),
+        favorite_season:   document.getElementById('inp-season').value,
+        product_diversity: document.getElementById('inp-diversity').value
+      })
+    });
+    const r = await res.json();
+    if (r.error) throw new Error(r.error);
+
+    const p     = r.probability;
+    const level = p < 35 ? 'low' : p < 65 ? 'med' : 'hi';
+    const labels = {low:'Risque faible',med:'Risque modéré',hi:'Risque élevé'};
+    const verdicts = {
+      low:'Client fidèle. Maintenez l\'engagement avec des offres de fidélité personnalisées.',
+      med:'Risque modéré. Envisagez une campagne de réactivation ciblée dans les 30 jours.',
+      hi:'Risque élevé ! Contactez ce client immédiatement avec une offre exclusive.'
+    };
+
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('resultsSection').scrollIntoView({behavior:'smooth', block:'start'});
+
+    // Jauge circulaire
+    const gNum = document.getElementById('gaugeNum');
+    gNum.className = 'circle-pct ' + level;
+    gNum.textContent = p + '%';
+
+    const gFill = document.getElementById('gaugeFillCircle');
+    gFill.className = 'gauge-fill-circle ' + level;
+    setTimeout(() => {
+      const offset = CIRCUMFERENCE - (p / 100) * CIRCUMFERENCE;
+      gFill.style.strokeDashoffset = offset;
+    }, 80);
+
+    const gBadge = document.getElementById('gaugeBadge');
+    gBadge.className = 'gauge-badge ' + level;
+    gBadge.textContent = labels[level];
+
+    // Cluster
+    document.getElementById('clusterVal').textContent = r.segment;
+
+    // Segment
+    const cfg = segConfig[r.risk_segment] || segConfig['Réguliers'];
+    const si  = document.getElementById('segIcon');
+    si.className = 'i-icon ' + cfg.cls;
+    si.innerHTML = `<i class="fa-solid ${cfg.icon}"></i>`;
+    document.getElementById('segVal').textContent = r.risk_segment;
+
+    // Revenu
+    document.getElementById('revenueVal').textContent = r.monetary_pred + ' £';
+
+    // 3 modèles
+    document.getElementById('rfVal').textContent  = r.rf.churn  + '%';
+    document.getElementById('xgbVal').textContent = r.xgb.churn + '%';
+    document.getElementById('stkVal').textContent = r.stacking.churn + '%';
+    document.getElementById('rfVal').style.color  = colLevel(r.rf.churn);
+    document.getElementById('xgbVal').style.color = colLevel(r.xgb.churn);
+    document.getElementById('stkVal').style.color = colLevel(r.stacking.churn);
+
+    // Verdict
+    const vCard = document.getElementById('verdictCard');
+    vCard.className = 'verdict-card ' + level;
+    vCard.textContent = verdicts[level];
+
+  } catch(e) { alert('Erreur : ' + e.message); }
+  finally { btn.disabled = false; txt.style.display = 'flex'; spin.style.display = 'none'; }
+});
+</script>
 </body>
 </html>
